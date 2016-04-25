@@ -17,7 +17,7 @@
 #include "AbstractItemWidget.hpp"
 #include <QtCore/qdebug.h>
 #include <stdexcept>
-
+#include <QPaintEvent>
 /*zone_namespace_begin*/
 
 namespace {
@@ -30,7 +30,9 @@ class TestWidget :
 public:
     TestWidget(QWidget *p):QWidget(p) {}
 
-    void setVisible(bool v)override {QWidget::setVisible(v);}
+    void aboutToDelete() override { 
+        setVisible(false); text_.clear();
+    }
 
     virtual void paint(
         const QStyleOptionViewItem &option,
@@ -66,10 +68,12 @@ public:
         lastStyleOptionViewItem_=option;
         index_=index;
         this->setGeometry(option.rect);
+        update();
     }
 
     virtual bool isPaintOptionChanged(
-        const QStyleOptionViewItem &option,const QModelIndex &index) const override{
+        const QStyleOptionViewItem &option,
+        const QModelIndex &index) const override{
         if (index_!=index) { return true; }
         if (option.state!=lastStyleOptionViewItem_.state) { return true; }
         if (option.rect!=lastStyleOptionViewItem_.rect) { return true; }
@@ -85,24 +89,27 @@ public:
         painter.setRenderHint(QPainter::HighQualityAntialiasing);
         painter.setRenderHint(QPainter::TextAntialiasing);
 
+        QColor brushColor=QColor(210,212,210);
         if (lastStyleOptionViewItem_.state&QStyle::State_MouseOver) {
-            painter.setBrush(QColor(200,200,200));
+            painter.setBrush(brushColor);
         }
         else {
-            painter.setBrush(QColor(
-                60+(rand()&127),
-                60+(rand()&127),
-                60+(rand()&127)));
+            brushColor=QColor(
+                160+(rand()&1),
+                160+(rand()&1),
+                160+(rand()&1));
+            painter.setBrush(brushColor);
         }
 
         if (lastStyleOptionViewItem_.state&QStyle::State_Selected) {
             painter.setPen(QPen(QColor(2,2,2,230),6));
         }
         else {
-            painter.setPen(QPen(QColor(1,1,1,0),0,Qt::DashDotDotLine));
+            painter.setPen(QPen(brushColor,0));
         }
 
-        constexpr double spaceing=1;
+        constexpr double spaceing=0;
+        painter.setClipRect(rect());
         painter.drawRect(
             spaceing,spaceing,
             lastStyleOptionViewItem_.rect.width()-2*spaceing,
@@ -116,6 +123,7 @@ public:
     }
 
     virtual void paintEvent(QPaintEvent*)override {
+        this->setGeometry(lastStyleOptionViewItem_.rect);
         QImage about_to_draw_;
         renderToImage(about_to_draw_);
         QPainter painter(this);
@@ -274,7 +282,7 @@ void paintGC(ListView*arg_this) {
             var_in_view.insert(i);
         }
         else {
-            i.second->setVisible(false);
+            i.second->aboutToDelete();
             arg_this->closePersistentEditor(i.first);
         }
     }
