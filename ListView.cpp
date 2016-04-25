@@ -18,6 +18,7 @@
 #include <QtCore/qdebug.h>
 #include <stdexcept>
 #include <QPaintEvent>
+#include <QTimer>
 /*zone_namespace_begin*/
 
 namespace {
@@ -27,8 +28,11 @@ class TestWidget :
     public QWidget,
     public AbstractItemWidget{
     QString text_;
+    std::uint32_t draw_index_=0;
 public:
-    TestWidget(QWidget *p):QWidget(p) {}
+    TestWidget(QWidget *p):QWidget(p) { 
+        //setAutoFillBackground(true);
+    }
 
     void aboutToDelete() override { 
         setVisible(false); text_.clear();
@@ -38,8 +42,15 @@ public:
         const QStyleOptionViewItem &option,
         const QModelIndex & index) override{
         if (isPaintOptionChanged(option,index)) {
-            updateEditorGeometry(option,index);
-            this->update();
+            if (option.rect!=lastStyleOptionViewItem_.rect) {
+                updateEditorGeometry(option,index);
+            }
+            else {
+                auto var_draw_key=++draw_index_;
+                QTimer::singleShot(5,this,[var_draw_key,this]() {
+                    if (var_draw_key==draw_index_) { this->update(); }
+                });
+            }
             index_=index;
             lastStyleOptionViewItem_=option;
         }
@@ -82,7 +93,9 @@ public:
 
     void renderToImage(QImage & argImage) {
 
-        QImage varImage(rect().size(),QImage::Format_RGBA8888);
+        auto var_size=lastStyleOptionViewItem_.rect.size();
+        
+        QImage varImage(var_size,QImage::Format_RGBA8888);
         QPainter painter(&varImage);
         varImage.fill(QColor(0,0,0,0));
 
@@ -94,26 +107,28 @@ public:
             painter.setBrush(brushColor);
         }
         else {
-            brushColor=QColor(
-                160+(rand()&1),
-                160+(rand()&1),
-                160+(rand()&1));
+            brushColor=QColor(127,127,127,127);
             painter.setBrush(brushColor);
         }
 
+        constexpr const static double spaceing=0;
         if (lastStyleOptionViewItem_.state&QStyle::State_Selected) {
             painter.setPen(QPen(QColor(2,2,2,230),6));
+            
+            painter.drawRect(
+                QRect(spaceing,spaceing,
+                lastStyleOptionViewItem_.rect.width()-2*spaceing,
+                lastStyleOptionViewItem_.rect.height()-2*spaceing));
+
         }
         else {
             painter.setPen(QPen(brushColor,0));
+            painter.fillRect(
+                QRect(spaceing,spaceing,
+                lastStyleOptionViewItem_.rect.width()-2*spaceing,
+                lastStyleOptionViewItem_.rect.height()-2*spaceing),
+                brushColor);
         }
-
-        constexpr double spaceing=0;
-        painter.setClipRect(rect());
-        painter.drawRect(
-            spaceing,spaceing,
-            lastStyleOptionViewItem_.rect.width()-2*spaceing,
-            lastStyleOptionViewItem_.rect.height()-2*spaceing);
 
         painter.setPen(QPen(QColor(0,0,0),1));
         painter.setBrush(QColor(0,0,0));

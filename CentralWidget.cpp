@@ -30,6 +30,7 @@ CentralWidget::CentralWidget(){
     var_list_view->setSelectionMode(
         QAbstractItemView::SelectionMode::ExtendedSelection);
     this->resize(600,700);
+    setAutoFillBackground(true);
 }
 
 CentralWidget::~CentralWidget(){
