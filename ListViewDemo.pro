@@ -17,4 +17,5 @@ HEADERS  += MainWindow.hpp \
     ListView.hpp \
     CentralWidget.hpp \
     ListViewData.hpp \
-    ListViewPrivateFunction.hpp
+    ListViewPrivateFunction.hpp \
+    AbstractItemWidget.hpp

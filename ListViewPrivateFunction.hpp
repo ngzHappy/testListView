@@ -9,6 +9,8 @@ class ListView;
 namespace zone_private_function {
 void construct(ListView*);
 void destruct(ListView*);
+void close_all_item(ListView*);
+void paintGC(ListView*);
 }
 
 /*zone_namespace_end*/

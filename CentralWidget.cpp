@@ -21,7 +21,8 @@ CentralWidget::CentralWidget(){
                                                  "1","2","3",
                                                  "1","2","3",
                                                  "1","2","3",}));
-
+    var_list_view->setSelectionMode(
+        QAbstractItemView::SelectionMode::ExtendedSelection);
 }
 
 CentralWidget::~CentralWidget(){

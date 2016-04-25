@@ -3,6 +3,7 @@
 #define __LISTVIEW_0___HPP_0x00_() 1
 
 #include <QtWidgets/QListView>
+#include <functional>
 #include <memory>
 
 #if !defined(MACRO_PROTECTED)
@@ -19,19 +20,35 @@ _t_class_name_&operator=(_t_class_name_ &&)=delete
 /*zone_namespace_begin*/
 
 namespace zone_data{
-class ListView;
+class ListViewData;
 }
 
 class ListView :public QListView{
     Q_OBJECT
     macro_no_copy(ListView);
 MACRO_PROTECTED:
-    zone_data::ListView * data_=nullptr;
+    zone_data::ListViewData * data_=nullptr;
+public:
+    typedef std::shared_ptr<std::function<QWidget*(QWidget*,QModelIndex)>> CreateFunction;
 public:
 
     ListView();
     ~ListView();
+public:
 
+    void setCreateFunction(const CreateFunction& /*createFunction*/);
+    void setCreateFunction(CreateFunction&& /*createFunction*/);
+    const CreateFunction & getCreateFunction() const;
+    const CreateFunction & createFunction() const{ return getCreateFunction();}
+
+    void closeAllItem();
+
+private: 
+    template<typename _t_CREATEFUNCTION_t__>
+    void _p_setCreateFunction(_t_CREATEFUNCTION_t__ && /*createFunction*/);
+protected:
+    void paintGC();
+    void paintEvent(QPaintEvent*)override;
 };
 
 /*zone_namespace_end*/

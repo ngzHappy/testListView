@@ -5,27 +5,52 @@
 #include <QtWidgets/QStyledItemDelegate>
 #include <functional>
 #include <memory>
+#include <map>
+#include "AbstractItemWidget.hpp"
 
 /*zone_namespace_begin*/
 class ListView;
 namespace zone_data{
 
-typedef ::ListView ListViewType;
 class ListViewItemDeletegate:public QStyledItemDelegate{
     Q_OBJECT
+    typedef ListView ListViewType;
     ListViewType * super;
 public:
-    ListViewItemDeletegate(ListViewType *);
+    ListViewItemDeletegate(ListView *);
     ~ListViewItemDeletegate();
+
+
+    virtual QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+    virtual void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+    virtual void setEditorData(QWidget *editor, const QModelIndex &index) const override;
+    virtual void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const override;
+    virtual QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+    virtual void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+
 };
 
-class ListView  {
+class ListViewData  {
 public:
-    ListView();
-    ~ListView();
+    ListViewData();
+    ~ListViewData();
+
+    class Item{
+        AbstractItemWidget * itemWidget_;
+    public:
+        Item(QWidget *);
+        ~Item();
+
+        AbstractItemWidget & operator*(){return *itemWidget_;}
+        const AbstractItemWidget & operator*()const{return *itemWidget_;}
+
+        AbstractItemWidget * operator->(){return itemWidget_;}
+        const AbstractItemWidget * operator->()const{return itemWidget_;}
+    };
 
     ListViewItemDeletegate * delegate=nullptr;
     std::shared_ptr<std::function<QWidget*(QWidget*,QModelIndex)>> createWidgetFunction;
+    std::map<QModelIndex,Item> allOpenedItems;
 };
 
 }
