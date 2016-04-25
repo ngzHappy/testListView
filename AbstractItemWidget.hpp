@@ -16,7 +16,7 @@ public:
     virtual QSize sizeHint(const QStyleOptionViewItem &option,const QModelIndex &index)=0;
     virtual void updateEditorGeometry(const QStyleOptionViewItem &option,const QModelIndex &index)=0;
     virtual bool isPaintOptionChanged(const QStyleOptionViewItem &,const QModelIndex &index)const=0;
-    virtual QRect getRect()const=0;
+    virtual void setVisible(bool)=0;
 };
 
 #endif // ABSTRACTITEMWIDGET_HPP

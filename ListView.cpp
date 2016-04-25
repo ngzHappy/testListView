@@ -26,13 +26,17 @@ namespace zone_data_private{
 class TestWidget :
     public QWidget,
     public AbstractItemWidget{
+    QString text_;
 public:
     TestWidget(QWidget *p):QWidget(p) {}
+
+    void setVisible(bool v)override {QWidget::setVisible(v);}
 
     virtual void paint(
         const QStyleOptionViewItem &option,
         const QModelIndex & index) override{
         if (isPaintOptionChanged(option,index)) {
+            updateEditorGeometry(option,index);
             this->update();
             index_=index;
             lastStyleOptionViewItem_=option;
@@ -41,10 +45,14 @@ public:
 
     virtual void setEditorData(const QModelIndex &index) override { 
         index_=index; 
+        if (index.isValid()) {
+            text_=index.data(Qt::DisplayRole).value<QString>();
+        }
+        else {text_="";}
         update();
     }
 
-    virtual void setModelData(QAbstractItemModel *,const QModelIndex &index) override { 
+    virtual void setModelData(QAbstractItemModel * ,const QModelIndex &index) override { 
         index_=index; 
     }
 
@@ -63,35 +71,57 @@ public:
     virtual bool isPaintOptionChanged(
         const QStyleOptionViewItem &option,const QModelIndex &index) const override{
         if (index_!=index) { return true; }
-        if (option.rect!=lastStyleOptionViewItem_.rect) {return true;}
         if (option.state!=lastStyleOptionViewItem_.state) { return true; }
+        if (option.rect!=lastStyleOptionViewItem_.rect) { return true; }
         return false;
     }
 
-    virtual void paintEvent(QPaintEvent*)override {
-        QPainter painter(this);
+    void renderToImage(QImage & argImage) {
+
+        QImage varImage(rect().size(),QImage::Format_RGBA8888);
+        QPainter painter(&varImage);
+        varImage.fill(QColor(0,0,0,0));
+
+        painter.setRenderHint(QPainter::HighQualityAntialiasing);
+        painter.setRenderHint(QPainter::TextAntialiasing);
+
         if (lastStyleOptionViewItem_.state&QStyle::State_MouseOver) {
-            painter.setBrush(QColor(255,255,255,200));
+            painter.setBrush(QColor(200,200,200));
         }
-        else{
+        else {
             painter.setBrush(QColor(
                 60+(rand()&127),
                 60+(rand()&127),
-                60+(rand()&127),
-                200));
+                60+(rand()&127)));
         }
 
         if (lastStyleOptionViewItem_.state&QStyle::State_Selected) {
             painter.setPen(QPen(QColor(2,2,2,230),6));
         }
         else {
-            painter.setPen(QPen(Qt::transparent,0));
+            painter.setPen(QPen(QColor(1,1,1,0),0,Qt::DashDotDotLine));
         }
 
-        painter.drawRect(rect());
+        constexpr double spaceing=1;
+        painter.drawRect(
+            spaceing,spaceing,
+            lastStyleOptionViewItem_.rect.width()-2*spaceing,
+            lastStyleOptionViewItem_.rect.height()-2*spaceing);
+
+        painter.setPen(QPen(QColor(0,0,0),1));
+        painter.setBrush(QColor(0,0,0));
+        painter.drawText(10,20,text_);
+
+        argImage=std::move(varImage);
     }
 
-    QRect getRect() const override { return QWidget::geometry(); }
+    virtual void paintEvent(QPaintEvent*)override {
+        QImage about_to_draw_;
+        renderToImage(about_to_draw_);
+        QPainter painter(this);
+        painter.drawImage(0,0,about_to_draw_);
+    }
+
 };
 
 }
@@ -151,6 +181,7 @@ void ListViewItemDeletegate::paint(
         return varPos->second->paint(option,index);
     }
     else {
+        painter->fillRect(option.rect,QColor(0,0,0,0));
         return super->openPersistentEditor(index);
     }
     return QStyledItemDelegate::paint(
@@ -234,23 +265,21 @@ void close_all_item(ListView*arg_this) {
 
 void paintGC(ListView*arg_this) {
     zone_this_data(arg_this);
-    auto * varViewPort= arg_this->viewport();
-    if (varViewPort==nullptr) { varViewPort=arg_this; }
-    auto var_rect_view_=varViewPort->geometry();
+    auto var_rect_view_=arg_this->visibleRegion().boundingRect();
     auto &varAllItems=var_this_data->allOpenedItems;
     std::map<QModelIndex,zone_data::ListViewData::Item> var_in_view;
-    for (const auto & i:varAllItems) {
-        auto var_this_rect_=i.second->getRect();
+    for (auto & i:varAllItems) {
+        auto var_this_rect_=arg_this->visualRect(i.first);
         if (var_this_rect_.intersects(var_rect_view_)) {
             var_in_view.insert(i);
         }
         else {
+            i.second->setVisible(false);
             arg_this->closePersistentEditor(i.first);
-            //qDebug()<<"close"<<i.first;
         }
     }
     varAllItems=std::move(var_in_view);
-    //qDebug()<<"all items size:"<<varAllItems.size();
+    //qDebug()<<"item in view"<<varAllItems.size();
 }
 
 /********************************zone_function********************************/
@@ -258,6 +287,7 @@ void paintGC(ListView*arg_this) {
 
 ListView::ListView()  {
     zone_private_function::construct(this);
+    setSpacing(0);
 }
 
 ListView::~ListView() {
@@ -293,8 +323,8 @@ void ListView::paintGC() {
 }
 
 void ListView::paintEvent(QPaintEvent* e) {
-    paintGC();
     QListView::paintEvent(e);
+    paintGC();
 }
 
 /*zone_namespace_end*/
