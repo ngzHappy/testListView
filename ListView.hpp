@@ -42,8 +42,9 @@ public:
     const CreateFunction & createFunction() const{ return getCreateFunction();}
 
     void closeAllItem();
+    void setModel(QAbstractItemModel *model)override;
 
-private: 
+private:
     template<typename _t_CREATEFUNCTION_t__>
     void _p_setCreateFunction(_t_CREATEFUNCTION_t__ && /*createFunction*/);
 protected:

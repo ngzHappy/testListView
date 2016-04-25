@@ -18,16 +18,18 @@ CentralWidget::CentralWidget(){
     var_button_1->setMinimumHeight(32);
     ListView * var_list_view=new ListView;
     var_this_layout->addWidget(var_list_view);
-    var_list_view->setModel(new QStringListModel({"1","2","3",
-                                                 "11","12","13",
-                                                 "221","222","223",
-                                                 "3331","3332","3333",
-                                                 "44441","44442","44443",
-                                                 "555551","555552","555553",
-                                                 "6666661","6666662","6666663",
-                                                 "77777771","77777772","77777773",}));
+    auto string_model=new QStringListModel({ "1","2","3",
+        "11","12","13",
+        "221","222","223",
+        "3331","3332","3333",
+        "44441","44442","44443",
+        "555551","555552","555553",
+        "6666661","6666662","6666663",
+        "77777771","77777772","77777773", });
+    var_list_view->setModel(string_model);
     var_list_view->setSelectionMode(
         QAbstractItemView::SelectionMode::ExtendedSelection);
+    this->resize(600,700);
 }
 
 CentralWidget::~CentralWidget(){

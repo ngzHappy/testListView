@@ -43,8 +43,8 @@ public:
         }
     }
 
-    virtual void setEditorData(const QModelIndex &index) override { 
-        index_=index; 
+    virtual void setEditorData(const QModelIndex &index) override {
+        index_=index;
         if (index.isValid()) {
             text_=index.data(Qt::DisplayRole).value<QString>();
         }
@@ -52,8 +52,8 @@ public:
         update();
     }
 
-    virtual void setModelData(QAbstractItemModel * ,const QModelIndex &index) override { 
-        index_=index; 
+    virtual void setModelData(QAbstractItemModel * ,const QModelIndex &index) override {
+        index_=index;
     }
 
     virtual QSize sizeHint(const QStyleOptionViewItem &,const QModelIndex &) override {
@@ -234,7 +234,7 @@ void ListViewItemDeletegate::updateEditorGeometry(
         editor,option,index);
 }
 
-ListViewData::Item::Item(QWidget *var_i) { 
+ListViewData::Item::Item(QWidget *var_i) {
     itemWidget_=dynamic_cast<AbstractItemWidget *>(var_i);
     if (nullptr==itemWidget_) { throw nullptr; }
 }
@@ -325,6 +325,20 @@ void ListView::paintGC() {
 void ListView::paintEvent(QPaintEvent* e) {
     QListView::paintEvent(e);
     paintGC();
+}
+
+void ListView::setModel(QAbstractItemModel *arg_model){
+    if(arg_model==QListView::model()){
+        return;
+    }
+    setUpdatesEnabled(false);
+    viewport()->setUpdatesEnabled(false);
+    closeAllItem();
+    QListView::setModel(arg_model);
+    viewport()->setUpdatesEnabled(true);
+    setUpdatesEnabled(true);
+    viewport()->update();
+    update();
 }
 
 /*zone_namespace_end*/

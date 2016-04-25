@@ -1,0 +1,11 @@
+*.lastbuildstate
+*.tlog
+*.obj
+*.vcxproj
+*.user
+*.exe
+*.sln
+*.bat
+*.TMP
+*.suo
+*.opendb
