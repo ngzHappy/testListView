@@ -4,7 +4,7 @@
 #include <QtWidgets/qpushbutton.h>
 #include <QtCore/QStringListModel>
 
-CentralWidget::CentralWidget(){
+CentralWidget::CentralWidget() {
     QHBoxLayout * var_button_layout=new QHBoxLayout;
     QVBoxLayout * var_this_layout=new QVBoxLayout;
     this->setLayout(var_this_layout);
@@ -33,7 +33,7 @@ CentralWidget::CentralWidget(){
     setAutoFillBackground(true);
 }
 
-CentralWidget::~CentralWidget(){
+CentralWidget::~CentralWidget() {
 
 }
 

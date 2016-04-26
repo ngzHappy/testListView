@@ -9,3 +9,8 @@
 *.TMP
 *.suo
 *.opendb
+*.pdb
+debug/*
+release/*
+*.filters
+*.db

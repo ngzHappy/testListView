@@ -17,6 +17,7 @@ public:
     virtual void updateEditorGeometry(const QStyleOptionViewItem &option,const QModelIndex &index)=0;
     virtual bool isPaintOptionChanged(const QStyleOptionViewItem &,const QModelIndex &index)const=0;
     virtual void aboutToDelete()=0;
+    virtual QRect geometry()const=0;
 };
 
 #endif // ABSTRACTITEMWIDGET_HPP

@@ -19,11 +19,11 @@ _t_class_name_&operator=(_t_class_name_ &&)=delete
 
 /*zone_namespace_begin*/
 
-namespace zone_data{
+namespace zone_data {
 class ListViewData;
 }
 
-class ListView :public QListView{
+class ListView :public QListView {
     Q_OBJECT
     macro_no_copy(ListView);
 MACRO_PROTECTED:
@@ -32,14 +32,14 @@ public:
     typedef std::shared_ptr<std::function<QWidget*(QWidget*,QModelIndex)>> CreateFunction;
 public:
 
-    ListView();
+    ListView(QWidget * /*parent*/=nullptr);
     ~ListView();
 public:
 
     void setCreateFunction(const CreateFunction& /*createFunction*/);
     void setCreateFunction(CreateFunction&& /*createFunction*/);
     const CreateFunction & getCreateFunction() const;
-    const CreateFunction & createFunction() const{ return getCreateFunction();}
+    const CreateFunction & createFunction() const { return getCreateFunction(); }
 
     void closeAllItem();
     void setModel(QAbstractItemModel *model)override;
@@ -50,6 +50,7 @@ private:
 protected:
     void paintGC();
     void paintEvent(QPaintEvent*)override;
+
 };
 
 /*zone_namespace_end*/

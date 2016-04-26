@@ -8,7 +8,9 @@
 #define zone_const_this_data(_v_) const auto * var_this_data=_v_->data_
 #endif
 
+#include <set>
 #include <cstddef>
+#include <iterator>
 #include <QtGui/QPalette>
 #include <QtGui/QPainter>
 #include "ListView.hpp"
@@ -16,6 +18,7 @@
 #include "ListViewPrivateFunction.hpp"
 #include "AbstractItemWidget.hpp"
 #include <QtCore/qdebug.h>
+#include <QtGui/qbackingstore.h>
 #include <stdexcept>
 #include <QPaintEvent>
 #include <QTimer>
@@ -23,34 +26,38 @@
 
 namespace {
 /*此类型仅仅用于测试*/
-namespace zone_data_private{
+namespace zone_data_private {
 class TestWidget :
     public QWidget,
-    public AbstractItemWidget{
+    public AbstractItemWidget {
     QString text_;
-    std::uint32_t draw_index_=0;
+    QColor normal_color_;
 public:
-    TestWidget(QWidget *p):QWidget(p) { 
+    TestWidget(QWidget *p):QWidget(p) {
         //setAutoFillBackground(true);
+        normal_color_=QColor(
+            30+(127&rand()),
+            30+(127&rand()),
+            30+(127&rand()),
+            127);
     }
 
-    void aboutToDelete() override { 
+    void aboutToDelete() override {
         setVisible(false); text_.clear();
+    }
+
+    QRect geometry()const override {
+        return QWidget::geometry();
     }
 
     virtual void paint(
         const QStyleOptionViewItem &option,
-        const QModelIndex & index) override{
+        const QModelIndex & index) override {
         if (isPaintOptionChanged(option,index)) {
             if (option.rect!=lastStyleOptionViewItem_.rect) {
                 updateEditorGeometry(option,index);
             }
-            else {
-                auto var_draw_key=++draw_index_;
-                QTimer::singleShot(5,this,[var_draw_key,this]() {
-                    if (var_draw_key==draw_index_) { this->update(); }
-                });
-            }
+            else { this->update(); }
             index_=index;
             lastStyleOptionViewItem_=option;
         }
@@ -61,11 +68,11 @@ public:
         if (index.isValid()) {
             text_=index.data(Qt::DisplayRole).value<QString>();
         }
-        else {text_="";}
+        else { text_=""; }
         update();
     }
 
-    virtual void setModelData(QAbstractItemModel * ,const QModelIndex &index) override {
+    virtual void setModelData(QAbstractItemModel *,const QModelIndex &index) override {
         index_=index;
     }
 
@@ -75,7 +82,7 @@ public:
 
     virtual void updateEditorGeometry(
         const QStyleOptionViewItem &option,
-        const QModelIndex &index) override{
+        const QModelIndex &index) override {
         lastStyleOptionViewItem_=option;
         index_=index;
         this->setGeometry(option.rect);
@@ -84,7 +91,8 @@ public:
 
     virtual bool isPaintOptionChanged(
         const QStyleOptionViewItem &option,
-        const QModelIndex &index) const override{
+        const QModelIndex &index) const override {
+        //if (option.state&QStyle::State_MouseOver) { return true; }
         if (index_!=index) { return true; }
         if (option.state!=lastStyleOptionViewItem_.state) { return true; }
         if (option.rect!=lastStyleOptionViewItem_.rect) { return true; }
@@ -94,7 +102,8 @@ public:
     void renderToImage(QImage & argImage) {
 
         auto var_size=lastStyleOptionViewItem_.rect.size();
-        
+
+        //qDebug()<<var_size;
         QImage varImage(var_size,QImage::Format_RGBA8888);
         QPainter painter(&varImage);
         varImage.fill(QColor(0,0,0,0));
@@ -107,27 +116,22 @@ public:
             painter.setBrush(brushColor);
         }
         else {
-            brushColor=QColor(127,127,127,127);
+            brushColor=normal_color_;
             painter.setBrush(brushColor);
         }
 
-        constexpr const static double spaceing=0;
-        if (lastStyleOptionViewItem_.state&QStyle::State_Selected) {
-            painter.setPen(QPen(QColor(2,2,2,230),6));
-            
-            painter.drawRect(
-                QRect(spaceing,spaceing,
-                lastStyleOptionViewItem_.rect.width()-2*spaceing,
-                lastStyleOptionViewItem_.rect.height()-2*spaceing));
+        varImage.fill(brushColor);
 
-        }
-        else {
-            painter.setPen(QPen(brushColor,0));
-            painter.fillRect(
-                QRect(spaceing,spaceing,
-                lastStyleOptionViewItem_.rect.width()-2*spaceing,
-                lastStyleOptionViewItem_.rect.height()-2*spaceing),
-                brushColor);
+        if (lastStyleOptionViewItem_.state&QStyle::State_Selected) {
+            QPainterPath path;
+            path.moveTo(1,1);
+            path.lineTo(width()-1,1);
+            path.lineTo(width()-1,height()-1);
+            path.lineTo(1,height()-1);
+            path.closeSubpath();
+            painter.setBrush(QColor(10,70,205,100));
+            painter.setPen(QPen(QColor(10,70,205,100),2));
+            painter.drawPath(path);
         }
 
         painter.setPen(QPen(QColor(0,0,0),1));
@@ -138,11 +142,15 @@ public:
     }
 
     virtual void paintEvent(QPaintEvent*)override {
+
         this->setGeometry(lastStyleOptionViewItem_.rect);
         QImage about_to_draw_;
         renderToImage(about_to_draw_);
+
         QPainter painter(this);
+        painter.setClipRect(0,0,width(),height());
         painter.drawImage(0,0,about_to_draw_);
+
     }
 
 };
@@ -156,10 +164,10 @@ ListViewData::ListViewData() {
     typedef std::shared_ptr<std::function<QWidget*(QWidget*,QModelIndex)>> _T_FunctionType;
     createWidgetFunction=_T_FunctionType(
                 new std::function<QWidget*(QWidget*,QModelIndex)>(
-                    [](QWidget*arg_p,QModelIndex){
-                    QWidget * var_ans=new zone_data_private::TestWidget(arg_p);
-                    return var_ans;
-                }));
+        [](QWidget*arg_p,QModelIndex) {
+        QWidget * var_ans=new zone_data_private::TestWidget(arg_p);
+        return var_ans;
+    }));
 }
 
 
@@ -167,24 +175,24 @@ ListViewData::~ListViewData() {
 }
 
 ListViewItemDeletegate::ListViewItemDeletegate(ListViewType * arg_super)
-    :QStyledItemDelegate(arg_super){
+    :QStyledItemDelegate(arg_super) {
     super=arg_super;
 }
 
-ListViewItemDeletegate::~ListViewItemDeletegate(){
+ListViewItemDeletegate::~ListViewItemDeletegate() {
 
 }
 
 QWidget *ListViewItemDeletegate::createEditor(
         QWidget *parent,
         const QStyleOptionViewItem &option,
-        const QModelIndex &index) const try{
-    auto & var_create_function= super->createFunction();
-    if(var_create_function&&(*var_create_function)){
+        const QModelIndex &index) const try {
+    auto & var_create_function=super->createFunction();
+    if (var_create_function&&(*var_create_function)) {
         auto * varAns=(*var_create_function)(parent,index);
         zone_this_data(super);
-        var_this_data->allOpenedItems.insert(
-        {index,ListViewData::Item(varAns)});
+        auto varItem=ListViewData::Item(varAns);
+        var_this_data->allOpenedItems.insert({ index,varItem });
         return varAns;
     }
     return QStyledItemDelegate::createEditor(parent,option,index);
@@ -239,7 +247,7 @@ QSize ListViewItemDeletegate::sizeHint(
         const QModelIndex &index) const {
     zone_this_data(super);
     auto var_pos=var_this_data->allOpenedItems.find(index);
-    if(var_pos!=var_this_data->allOpenedItems.end()){
+    if (var_pos!=var_this_data->allOpenedItems.end()) {
         return var_pos->second->sizeHint(option,index);
     }
     return QSize(64,64);
@@ -260,6 +268,7 @@ void ListViewItemDeletegate::updateEditorGeometry(
 ListViewData::Item::Item(QWidget *var_i) {
     itemWidget_=dynamic_cast<AbstractItemWidget *>(var_i);
     if (nullptr==itemWidget_) { throw nullptr; }
+
 }
 ListViewData::Item::~Item() {}
 /********************************zone_data********************************/
@@ -267,13 +276,13 @@ ListViewData::Item::~Item() {}
 
 namespace zone_private_function {
 /********************************zone_function********************************/
-void construct(ListView*arg_this){
+void construct(ListView*arg_this) {
     arg_this->data_=new zone_data::ListViewData;
     zone_this_data(arg_this);
     var_this_data->delegate=new zone_data::ListViewItemDeletegate(arg_this);
     arg_this->setItemDelegate(var_this_data->delegate);
 }
-void destruct(ListView*arg_this){
+void destruct(ListView*arg_this) {
     delete arg_this->data_;
 }
 
@@ -293,65 +302,98 @@ void paintGC(ListView*arg_this) {
     std::map<QModelIndex,zone_data::ListViewData::Item> var_in_view;
     for (auto & i:varAllItems) {
         auto var_this_rect_=arg_this->visualRect(i.first);
+
+        /*位置错乱强制关闭*/
+        if (i.second->geometry()!=var_this_rect_) {
+            i.second->aboutToDelete();
+            arg_this->closePersistentEditor(i.first);
+            continue;
+        }
+
+        /*判断是否可见*/
         if (var_this_rect_.intersects(var_rect_view_)) {
+            /*可见,保留*/
             var_in_view.insert(i);
         }
         else {
+            /*不可见关闭*/
             i.second->aboutToDelete();
             arg_this->closePersistentEditor(i.first);
         }
     }
     varAllItems=std::move(var_in_view);
     //qDebug()<<"item in view"<<varAllItems.size();
+    //childrenGC(arg_this);
 }
 
 /********************************zone_function********************************/
 }
 
-ListView::ListView()  {
-    zone_private_function::construct(this);
+ListView::ListView(QWidget * p):QListView(p) {
     setSpacing(0);
+    zone_private_function::construct(this);
+    setLineWidth(0);
+    setMidLineWidth(0);
+    setContentsMargins(0,0,0,0);
+    setStyleSheet(
+u8R"(
+QFrame {
+border: 0px solid green;
+border-radius: 0px;
+padding: 0px;
+margin :0;
+})"
+u8R"( 
+QListView {
+background-color: rgba(0,0,0,0);
+}
+)");
 }
 
 ListView::~ListView() {
     zone_private_function::destruct(this);
 }
 
-const ListView::CreateFunction & ListView::getCreateFunction() const{
+const ListView::CreateFunction & ListView::getCreateFunction() const {
     zone_const_this_data(this);
     return var_this_data->createWidgetFunction;
 }
 
 template<typename _t_CREATEFUNCTION_t__>
-void ListView::_p_setCreateFunction(_t_CREATEFUNCTION_t__ &&_createFunction_){
+void ListView::_p_setCreateFunction(_t_CREATEFUNCTION_t__ &&_createFunction_) {
     zone_this_data(this);
     var_this_data->createWidgetFunction=std::forward<_t_CREATEFUNCTION_t__>(_createFunction_);
     closeAllItem();
 }
 
-void ListView::setCreateFunction(const CreateFunction&_createFunction_){
+void ListView::setCreateFunction(const CreateFunction&_createFunction_) {
     _p_setCreateFunction(_createFunction_);
 }
 
-void ListView::setCreateFunction(CreateFunction&&_createFunction_){
+void ListView::setCreateFunction(CreateFunction&&_createFunction_) {
     _p_setCreateFunction(std::move(_createFunction_));
 }
 
-void ListView::closeAllItem(){
+void ListView::closeAllItem() {
     zone_private_function::close_all_item(this);
 }
 
 void ListView::paintGC() {
-    zone_private_function::paintGC(this);
+    auto varID=++(data_->paintGC_Count);
+    QTimer::singleShot(25,this,[this,varID]() {
+        if (varID!=data_->paintGC_Count) { return; }
+        zone_private_function::paintGC(this);
+    });
 }
 
 void ListView::paintEvent(QPaintEvent* e) {
     QListView::paintEvent(e);
+    zone_private_function::paintGC(this);
     paintGC();
 }
 
-void ListView::setModel(QAbstractItemModel *arg_model){
-    if(arg_model==QListView::model()){
+void ListView::setModel(QAbstractItemModel *arg_model) {
+    if (arg_model==QListView::model()) {
         return;
     }
     setUpdatesEnabled(false);

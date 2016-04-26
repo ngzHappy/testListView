@@ -7,10 +7,11 @@ class ListView;
 /*zone_namespace_begin*/
 
 namespace zone_private_function {
-void construct(ListView*);
-void destruct(ListView*);
-void close_all_item(ListView*);
-void paintGC(ListView*);
+    void construct(ListView*);
+    void destruct(ListView*);
+    void close_all_item(ListView*);
+    void paintGC(ListView*);
+    void childrenGC(ListView *);
 }
 
 /*zone_namespace_end*/
