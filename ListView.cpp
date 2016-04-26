@@ -120,7 +120,8 @@ public:
             painter.setBrush(brushColor);
         }
 
-        varImage.fill(brushColor);
+        //varImage.fill(brushColor);
+        backGroundColor_=brushColor;
 
         if (lastStyleOptionViewItem_.state&QStyle::State_Selected) {
             QPainterPath path;
@@ -152,7 +153,7 @@ public:
         painter.drawImage(0,0,about_to_draw_);
 
     }
-
+  
 };
 
 }
@@ -208,15 +209,23 @@ void ListViewItemDeletegate::paint(
         const QModelIndex &index) const {
     zone_this_data(super);
     auto varPos=var_this_data->allOpenedItems.find(index);
+    bool try_once=false;
+
+    label_try_once:
     if (varPos!=var_this_data->allOpenedItems.end()) {
+        painter->fillRect(
+            option.rect,//.marginsRemoved({ 1,1,1,1 }),
+            varPos->second->backgroundColor());
         return varPos->second->paint(option,index);
     }
     else {
+        super->openPersistentEditor(index);
+        if (try_once==false) {
+            try_once=true;
+            goto label_try_once;
+        }
         painter->fillRect(option.rect,QColor(0,0,0,0));
-        return super->openPersistentEditor(index);
     }
-    return QStyledItemDelegate::paint(
-        painter,option,index);
 }
 
 void ListViewItemDeletegate::setEditorData(
